@@ -102,3 +102,35 @@ def test_tool_roots_unchanged_where_nothing_is_gapped(monkeypatch):
     monkeypatch.setattr(pm.store, "current_target", lambda: "linux-x64")
     assert registry.tool_roots(["ffmpeg", "node", "npm", "python", "ripgrep"]) == [
         "ffmpeg", "node", "npm", "python", "ripgrep"]
+
+
+def test_build_env_names_native_compiler_for_cross_built_pbs(monkeypatch, tmp_path):
+    """python-build-standalone's ppc64le sysconfig names powerpc64le-linux-gnu-gcc;
+    a native host has plain gcc, so sdists need CC/CXX overridden."""
+    from pm import environment
+    import pm._uv
+    import pm.store
+
+    python = tmp_path / "python3"
+    python.touch()
+    monkeypatch.setattr(pm.store, "current_target", lambda: TARGET)
+    monkeypatch.setattr(pm._uv, "_toolchain", lambda **kw: (tmp_path / "uv", python))
+    monkeypatch.setattr(environment.shutil, "which", lambda name, *a, **kw: None)
+    monkeypatch.setattr(environment.sys, "platform", "linux")
+    env = environment.managed_environment(tmp_path / "venv", env={}, cache=tmp_path / "cache").env
+    assert env["CC"] == "gcc" and env["CXX"] == "g++"
+
+
+def test_build_env_leaves_compiler_alone_off_ppc64le(monkeypatch, tmp_path):
+    from pm import environment
+    import pm._uv
+    import pm.store
+
+    python = tmp_path / "python3"
+    python.touch()
+    monkeypatch.setattr(pm.store, "current_target", lambda: "linux-x64")
+    monkeypatch.setattr(pm._uv, "_toolchain", lambda **kw: (tmp_path / "uv", python))
+    monkeypatch.setattr(environment.shutil, "which", lambda name, *a, **kw: None)
+    monkeypatch.setattr(environment.sys, "platform", "linux")
+    env = environment.managed_environment(tmp_path / "venv", env={}, cache=tmp_path / "cache").env
+    assert "CC" not in env and "CXX" not in env
