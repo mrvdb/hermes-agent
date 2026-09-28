@@ -436,8 +436,17 @@ def prepare_launch(project_root: Path, argv: list[str]) -> Path | None:
     # HERMES_HOME (which may carry '..') while sys.executable arrives
     # normalized, so a raw compare re-execs every child forever (#122513). A
     # venv interpreter symlinked to the same binary is still a different
-    # interpreter (its own sys.prefix) and must re-exec once.
-    same = os.path.normcase(os.path.abspath(python)) == os.path.normcase(os.path.abspath(sys.executable))
+    # interpreter (its own sys.prefix) and must re-exec once -- except the
+    # committed environment's own interpreter: the source completion runs
+    # there on purpose, and relaunching it re-ran the whole build tail.
+    def _spelled(path) -> str:
+        return os.path.normcase(os.path.abspath(path))
+
+    from pm.environments import committed_venv, venv_python
+
+    committed = committed_venv(root)
+    same = _spelled(sys.executable) in {
+        _spelled(python), *([_spelled(venv_python(committed))] if committed else ())}
     if not current or not same:
         publish_launchers(root)
         return python
