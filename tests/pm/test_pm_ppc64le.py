@@ -66,3 +66,39 @@ def test_fetch_url_names_each_suppliers_ppc64le_triple(pkg, version, triple):
 
     url = get_package(pkg).fetch_url(version, TARGET)
     assert url.startswith("https://") and triple in url
+
+
+@pytest.mark.parametrize("pkg", ["ripgrep", "ffmpeg", "cua-driver"])
+def test_tools_without_upstream_ppc64le_build_are_gapped(pkg):
+    from pm.registry import get_package
+
+    assert get_package(pkg).missing_reason(TARGET)
+
+
+def test_ffmpeg_ppc64le_gap_keeps_the_musl_gaps():
+    from pm.registry import get_package
+    from pm.store import MUSL_TARGETS
+
+    gaps = get_package("ffmpeg").gaps
+    assert TARGET in gaps and MUSL_TARGETS <= set(gaps)
+
+
+def test_tool_roots_skip_packages_gapped_on_this_target(monkeypatch):
+    """A gapped required tool has no artifact to publish; without the filter it
+    reaches _install() and raises 'unavailable on <target>'."""
+    from pm import registry
+    import pm.store
+
+    monkeypatch.setattr(pm.store, "current_target", lambda: TARGET)
+    roots = registry.tool_roots(["ffmpeg", "node", "npm", "python", "ripgrep"])
+    assert "ripgrep" not in roots and "ffmpeg" not in roots
+    assert {"node", "npm", "python"} <= set(roots)
+
+
+def test_tool_roots_unchanged_where_nothing_is_gapped(monkeypatch):
+    from pm import registry
+    import pm.store
+
+    monkeypatch.setattr(pm.store, "current_target", lambda: "linux-x64")
+    assert registry.tool_roots(["ffmpeg", "node", "npm", "python", "ripgrep"]) == [
+        "ffmpeg", "node", "npm", "python", "ripgrep"]

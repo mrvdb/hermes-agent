@@ -62,8 +62,16 @@ def source_install_packages(names: list[str]) -> list[str]:
 
 
 def tool_roots(names: list[str]) -> list[str]:
-    """Packages to publish before a venv sync. The venv is not one of them."""
-    return [name for name in source_install_packages(names) if not isinstance(get_package(name), StatePackage)]
+    """Packages to publish before a venv sync. The venv is not one of them.
+
+    A package gapped for this host has no artifact to publish; the host's own
+    copy stands in (as POSIX git already does), so it is not a root here."""
+    from pm.store import current_target
+
+    target = current_target()
+    return [name for name in source_install_packages(names)
+            if not isinstance(get_package(name), StatePackage)
+            and get_package(name).missing_reason(target) is None]
 
 
 def package_definitions(names: list[str] | None = None) -> list[dict[str, Any]]:
