@@ -334,7 +334,7 @@ def machine_matches_binary(binary: Path, target: str) -> Optional[bool]:
                 return machine == {"x64": 0x8664, "arm64": 0xAA64}.get(arch)
             if head[:4] == b"\x7fELF":
                 machine = int.from_bytes(head[18:20], "little")
-                return machine == {"x64": 0x3E, "arm64": 0xB7}.get(arch)
+                return machine == {"x64": 0x3E, "arm64": 0xB7, "ppc64le": 0x15}.get(arch)
             if head[:4] in (b"\xcf\xfa\xed\xfe", b"\xfe\xed\xfa\xcf"):
                 cpu = struct.unpack("<I", head[4:8])[0]
                 return cpu == {"x64": 0x01000007, "arm64": 0x0100000C}.get(arch)
