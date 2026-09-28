@@ -99,8 +99,28 @@ def source_frontends(project_root: Path) -> tuple[str, ...]:
     return tuple(name for name in ("ui-tui", "web") if (project_root / name / "package.json").is_file())
 
 
+def unloadable_web_natives(project_root: Path, *, env: dict) -> list[str]:
+    """Web-toolchain native modules installed without a binary for this host.
+
+    Tailwind's CSS compilers are Rust addons with a fixed prebuild matrix
+    (e.g. no linux-ppc64 lightningcss). npm installs them anyway, so without
+    this check the gap only shows as a failed dashboard compile.
+    """
+    result = subprocess.run(
+        [shutil.which("node", path=env["PATH"]), str(project_root / "scripts/build/web-natives.mjs"),
+         "--source", str(project_root)],
+        cwd=project_root, env=env, capture_output=True, text=True, encoding="utf-8", errors="replace", check=True,
+    )
+    return result.stdout.split()
+
+
 def build_update_products(project_root: Path, *, desktop: bool) -> None:
-    """Prepare the selected union once; a failed product aborts the update."""
+    """Prepare the selected union once; a failed product aborts the update.
+
+    The dashboard is skipped, with a warning naming the module, when this host
+    has no binary of a web-toolchain native module: the CLI, TUI and gateway
+    do not need it.
+    """
     # Both current updates and historical takeover reach this in a fresh target
     # interpreter, never in the updater's pre-sync import graph.
     from hermes_cli.main_install_repair import _install_configured_features_missing_deps
@@ -130,7 +150,13 @@ def build_update_products(project_root: Path, *, desktop: bool) -> None:
             print("  ✓ Web UI is up to date")
         else:
             publish_stage("Building the web UI")
-            build_source_web(project_root, env=env)
+            # Asked before building: a missing platform binary is certain to fail
+            # the compile, and its failure tail would read as a broken install.
+            if missing := unloadable_web_natives(project_root, env=env):
+                print(f"  ⚠ Web UI not built: no {', '.join(missing)} binary for this platform. "
+                      "The dashboard (`hermes dashboard`) is unavailable; the CLI, TUI and gateway are unaffected.")
+            else:
+                build_source_web(project_root, env=env)
     if desktop:
         from hermes_cli.main_desktop import (
             _packaged_desktop_current_for_head, _refresh_installed_desktop_apps, build_prepared_desktop)
