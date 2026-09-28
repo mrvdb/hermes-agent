@@ -81,6 +81,7 @@ else
   case "$(uname -m)" in
     arm64|aarch64) arch=arm64 ;;
     x86_64|amd64) arch=x64 ;;
+    ppc64le) arch=ppc64le ;;
     *) echo -e "${RED}✗${NC} unsupported arch $(uname -m)" >&2; exit 1 ;;
   esac
 fi
