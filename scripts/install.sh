@@ -266,6 +266,11 @@ uv_bootstrap_pin() {
             UV_PIN_MIRROR="https://hermes-assets.nousresearch.com/upstream/sha256/546f7f8a6c70ff13a3a9d2bc958db3427298cebf3e0cb756f9177133b7068843"
             UV_PIN_SHA256="546f7f8a6c70ff13a3a9d2bc958db3427298cebf3e0cb756f9177133b7068843"
             ;;
+        linux-ppc64le)
+            UV_PIN_URL="https://github.com/astral-sh/uv/releases/download/0.12.3/uv-powerpc64le-unknown-linux-gnu.tar.gz"
+            UV_PIN_MIRROR="https://hermes-assets.nousresearch.com/upstream/sha256/bff188fcf2d867c5595f8db6061a39e54752ab213eaefc14287f37e85afe9ead"
+            UV_PIN_SHA256="bff188fcf2d867c5595f8db6061a39e54752ab213eaefc14287f37e85afe9ead"
+            ;;
         *)
             UV_PIN_URL=""
             UV_PIN_SHA256=""
@@ -281,6 +286,7 @@ uv_bootstrap_target() {
     case "$(uname -m)" in
         arm64|aarch64) _arch="arm64" ;;
         x86_64|amd64)  _arch="x64" ;;
+        ppc64le)       _arch="ppc64le" ;;
         *) return 1 ;;
     esac
     case "$(uname -s)" in
@@ -303,10 +309,14 @@ uv_bootstrap_target() {
                 _libc="${_libc,,}"
             fi
             if [[ "$_libc" == *musl* ]]; then
+                # No supplier publishes musl POWER builds; refuse rather than
+                # hand a musl host glibc binaries.
+                [[ "$_arch" == ppc64le ]] && return 1
                 echo "linux-$_arch-musl"
             elif [[ "$_libc" == *glibc* || "$_libc" == *"gnu libc"* || "$_libc" == *"gnu c library"* ]]; then
                 echo "linux-$_arch"
             elif compgen -G '/lib/ld-musl-*.so.1' >/dev/null; then
+                [[ "$_arch" == ppc64le ]] && return 1
                 echo "linux-$_arch-musl"
             else
                 echo "linux-$_arch"

@@ -34,7 +34,8 @@ from pm.artifact_mirror import mirror_url
 BEGIN_MARK = "# --- BEGIN GENERATED: bootstrap pins (scripts/gen-bootstrap-pins.py) ---"
 END_MARK = "# --- END GENERATED: bootstrap pins ---"
 
-_POSIX_TARGETS = ("linux-x64", "linux-arm64", "linux-x64-musl", "linux-arm64-musl", "darwin-x64", "darwin-arm64")
+_POSIX_TARGETS = ("linux-x64", "linux-arm64", "linux-x64-musl", "linux-arm64-musl", "darwin-x64", "darwin-arm64",
+                  "linux-ppc64le")
 _WINDOWS_TARGETS = ("win32-x64", "win32-arm64")
 
 
