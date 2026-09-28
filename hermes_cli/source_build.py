@@ -131,11 +131,33 @@ def _headless_linux() -> bool:
     return sys.platform.startswith("linux") and not (os.environ.get("DISPLAY") or os.environ.get("WAYLAND_DISPLAY"))
 
 
+def unloadable_web_natives(project_root: Path, *, env: dict) -> list[str]:
+    """Web-toolchain native modules installed without a binary for this host.
+
+    Tailwind's CSS compilers are Rust addons with a fixed prebuild matrix
+    (e.g. no linux-ppc64 lightningcss). npm installs them anyway, so without
+    this check the gap only shows as a failed dashboard compile.
+    """
+    node = shutil.which("node", path=env["PATH"])
+    if node is None:
+        return []  # nothing to ask; the build itself reports the missing node
+    result = subprocess.run(
+        [node, str(project_root / "scripts/build/web-natives.mjs"),
+         "--source", str(project_root)],
+        cwd=project_root, env=env, capture_output=True, text=True, encoding="utf-8", errors="replace", check=True,
+    )
+    return result.stdout.split()
+
+
 def build_update_products(project_root: Path, *, desktop: bool) -> None:
     """Prepare the selected union once, attempting every independent product.
 
     A failed product never skips the next one (a broken web build must not leave the TUI or the
     desktop app stale); the failures are raised together at the end as ``ProductBuildError``.
+
+    The dashboard is skipped, with a warning naming the module, when this host
+    has no binary of a web-toolchain native module: the CLI, TUI and gateway
+    do not need it.
     """
     # Both current updates and historical takeover reach this in a fresh target
     # interpreter, never in the updater's pre-sync import graph.
@@ -200,7 +222,7 @@ def build_update_products(project_root: Path, *, desktop: bool) -> None:
                     print("  ✓ Web UI is up to date")
                 else:
                     publish_stage("Building the web UI")
-                    attempt("web UI build", lambda: build_source_web(project_root, env=env))
+                    attempt("web UI build", lambda: _build_web_product(project_root, env))
             if desktop and not desktop_skipped:
                 desktop_built = attempt("desktop app build", lambda: _build_desktop_product(project_root, env, publish_stage))
                 desktop_reason = failures[-1][0] if not desktop_built else ""
@@ -227,6 +249,16 @@ def build_update_products(project_root: Path, *, desktop: bool) -> None:
         print(f"  ⚠ Plugin migration skipped: {exc}")
     if failures:
         raise ProductBuildError(failures)
+
+
+def _build_web_product(project_root: Path, env: dict) -> None:
+    # Asked before building: a missing platform binary is certain to fail
+    # the compile, and its failure tail would read as a broken install.
+    if missing := unloadable_web_natives(project_root, env=env):
+        print(f"  ⚠ Web UI not built: no {', '.join(missing)} binary for this platform. "
+              "The dashboard (`hermes dashboard`) is unavailable; the CLI, TUI and gateway are unaffected.")
+    else:
+        build_source_web(project_root, env=env)
 
 
 def _build_desktop_product(project_root: Path, env: dict, publish_stage) -> None:

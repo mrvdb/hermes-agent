@@ -243,6 +243,18 @@ TUI and web scripts support a no-argument development mode. Explicit product
 mode requires the arguments in the earlier table. The desktop product script
 has no no-argument mode. The Node product parsers expose no `--help` flag.
 
+### Web toolchain native modules
+
+The web build compiles CSS through Rust addons (`lightningcss`,
+`@tailwindcss/oxide`) whose prebuilds cover a fixed platform set; npm installs
+the JavaScript package everywhere and skips a missing platform binary silently.
+`web-natives.mjs --source <root>` loads each from the web workspace as the build
+would and prints `<name>@<version>` for every one whose binary is missing on this
+host. Before the web build during install/update, a named gap skips the compile
+with a warning (the CLI, TUI and gateway do not need the dashboard); otherwise
+the build runs and any failure still aborts. A broken JavaScript dependency is
+not a platform gap and fails the check itself.
+
 ## Python dependency provider
 
 ```sh

@@ -145,7 +145,7 @@ def source_checkout(tmp_path, monkeypatch):
     scripts = root / "scripts" / "build"
     scripts.mkdir(parents=True)
     repository = Path(__file__).resolve().parents[2]
-    for name in ("node-deps.mjs", "freshness.mjs", "frontend-common.mjs"):
+    for name in ("node-deps.mjs", "freshness.mjs", "frontend-common.mjs", "web-natives.mjs"):
         shutil.copy2(repository / "scripts/build" / name, scripts / name)
     (root / ".gitignore").write_text("node_modules/\n**/dist/\n", encoding="utf-8")
     return root, acquired
@@ -294,6 +294,41 @@ def test_update_recompiles_only_products_whose_inputs_changed(source_products):
     (root / "web/src/changed.ts").write_text("export {}\n", encoding="utf-8")
     build_update_products(root, desktop=False)
     assert products() == ["web"]
+
+
+@pytest.mark.platforms("linux")
+def test_web_toolchain_native_gap_degrades_to_a_warning(source_products, capsys):
+    """A web-toolchain native module that is installed but has no build for
+    this host (lightningcss on ppc64le) must not abort the install: the CLI,
+    TUI and gateway work without the dashboard. The warning names the module."""
+    from hermes_cli.source_build import build_update_products
+
+    root, _ = source_products
+    vendor = root / "vendor/lightningcss"
+    vendor.mkdir(parents=True)
+    (vendor / "package.json").write_text(
+        json.dumps({"name": "lightningcss", "version": "9.9.9", "main": "index.js"}), encoding="utf-8")
+    (vendor / "index.js").write_text(
+        "throw Object.assign(new Error(\"Cannot find module '../lightningcss.linux-ppc64-gnu.node'\"),"
+        " {code: 'MODULE_NOT_FOUND'});\n", encoding="utf-8")
+    web = root / "web/package.json"
+    manifest = json.loads(web.read_text(encoding="utf-8-sig"))
+    web.write_text(json.dumps({**manifest, "dependencies": {"lightningcss": "file:../vendor/lightningcss"}}),
+                   encoding="utf-8")
+    subprocess.run([shutil.which("npm"), "install", "--package-lock-only", "--ignore-scripts", "--offline",
+                    "--no-audit", "--no-fund"], cwd=root, check=True)
+    (root / "fail-web").touch()
+
+    build_update_products(root, desktop=False)
+
+    # Known before the build: the doomed compiler never runs, so no failure
+    # tail is printed ahead of the warning.
+    assert [event["step"] for event in _events(root)] == ["deps", "tui"]
+    assert (root / "ui-tui/dist/entry.js").read_text(encoding="utf-8-sig") == "tui"
+    assert not (root / "hermes_cli/web_dist/index.html").exists()
+    output = capsys.readouterr().out
+    assert "lightningcss@9.9.9" in output
+    assert "failed" not in output
 
 
 @pytest.mark.platforms("linux")
