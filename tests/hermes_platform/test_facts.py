@@ -15,6 +15,7 @@ from hermes_platform.host import facts
         ("aarch64", "arm64"),
         ("ARM64", "arm64"),
         ("i386", "x86"),
+        ("ppc64le", "ppc64le"),
         ("weird", "unknown"),
     ],
 )
