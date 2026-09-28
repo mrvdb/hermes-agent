@@ -48,7 +48,11 @@ _RUST_TRIPLE = {
     "linux-arm64-musl": "aarch64-unknown-linux-musl",
     "darwin-x64": "x86_64-apple-darwin",
     "darwin-arm64": "aarch64-apple-darwin",
+    "linux-ppc64le": "powerpc64le-unknown-linux-gnu",
 }
+
+# python-build-standalone names POWER differently from rustc (and uv).
+_PBS_TRIPLE = {"linux-ppc64le": "ppc64le-unknown-linux-gnu"}
 
 _NODE_PLAT = {
     "win32-x64": "win-x64",
@@ -59,6 +63,7 @@ _NODE_PLAT = {
     "linux-arm64-musl": "linux-arm64-musl",
     "darwin-x64": "darwin-x64",
     "darwin-arm64": "darwin-arm64",
+    "linux-ppc64le": "linux-ppc64le",
 }
 
 
@@ -268,7 +273,7 @@ class Python(_BionicDebArm, BinaryPackage, DebPackage):
         pyver, _, tag = version.partition("+")
         if not tag:
             raise InstallError(self.name, f"version {version!r} needs the +<release> tag")
-        triple = _RUST_TRIPLE[target]
+        triple = _PBS_TRIPLE.get(target) or _RUST_TRIPLE[target]
         return (
             "https://github.com/astral-sh/python-build-standalone/releases/download/"
             f"{tag}/cpython-{pyver}+{tag}-{triple}-install_only.tar.gz"
