@@ -805,7 +805,10 @@ class Ffmpeg(_BionicDebArm, BinaryPackage, DebPackage):
     name = "ffmpeg"
     deb_package = "ffmpeg"
     optional = False
-    gaps = {target: "BtbN Linux builds link glibc dynamically" for target in MUSL_TARGETS}
+    gaps = {
+        **{target: "BtbN Linux builds link glibc dynamically" for target in MUSL_TARGETS},
+        "linux-ppc64le": "no upstream ppc64le build; uses the system ffmpeg",
+    }
 
     def main_rel(self, target: str) -> str:
         return "bin/ffmpeg"
@@ -863,6 +866,7 @@ class Ffmpeg(_BionicDebArm, BinaryPackage, DebPackage):
 class Ripgrep(BinaryPackage):
     name = "ripgrep"
     binary_rel = {"win32": "rg.exe", "posix": "rg"}
+    gaps = {"linux-ppc64le": "no upstream ppc64le build; uses the system rg"}
     # The ARM64 Windows release links the VC++ runtime dynamically (the x64
     # one embeds it), and a fresh Windows has no vcruntime140.dll: rg.exe
     # dies with STATUS_DLL_NOT_FOUND. Our pinned Python ships the ARM64 DLL.
@@ -913,7 +917,8 @@ class CuaDriver(BinaryPackage):
     # Computer use's only OS path, so the default install carries it.
     default = True
     gaps = {**{target: "cua-driver does not publish a musl build" for target in MUSL_TARGETS},
-            "linux-arm64-bionic": "cua-driver does not publish an Android build"}
+            "linux-arm64-bionic": "cua-driver does not publish an Android build",
+            "linux-ppc64le": "cua-driver does not publish a ppc64le build"}
     binary_rel = {
         "darwin-arm64": "CuaDriver.app/Contents/MacOS/cua-driver",
         "darwin-x64": "CuaDriver.app/Contents/MacOS/cua-driver",
