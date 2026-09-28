@@ -228,6 +228,15 @@ def managed_environment(destination: Path, *, python: Path | None = None,
         # PBS's AR still names its deleted build directory. Its CC is already
         # clang; only the archiver needs a default, and only for our interpreter.
         build_env.setdefault("AR", "/usr/bin/ar")
+    if (sys.platform.startswith("linux") and python.resolve() == pinned_python.resolve()
+            and shutil.which("powerpc64le-linux-gnu-gcc") is None):
+        from pm.store import current_target
+
+        if current_target() == "linux-ppc64le":
+            # PBS cross-compiles POWER: its sysconfig CC is the cross triple's gcc,
+            # absent on a native host. distutils swaps CC into LDSHARED as well.
+            build_env.setdefault("CC", "gcc")
+            build_env.setdefault("CXX", "g++")
     return PythonEnvironment(
         uv=uv, python=python,
         destination=destination.absolute(), cache=uv_cache_dir() if cache is None else cache.absolute(),
