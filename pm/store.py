@@ -28,6 +28,7 @@ ALL_TARGETS = (
     "linux-arm64-bionic",
     "darwin-x64",
     "darwin-arm64",
+    "linux-ppc64le",
 )
 MUSL_TARGETS = frozenset({"linux-x64-musl", "linux-arm64-musl"})
 
@@ -148,6 +149,9 @@ def _is_musl_libc() -> bool:
 
 def current_target() -> str:
     machine = _native_machine()
+    if sys.platform.startswith("linux") and machine == "ppc64le" \
+            and not _is_bionic_libc() and not _is_musl_libc():
+        return "linux-ppc64le"
     if machine in ("arm64", "aarch64"):
         arch = "arm64"
     elif machine in ("x86_64", "amd64", "x64"):
