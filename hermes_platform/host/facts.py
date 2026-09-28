@@ -14,6 +14,7 @@ _ARCH_NAMES = {
     "amd64": "amd64", "x86_64": "amd64", "x64": "amd64",
     "arm64": "arm64", "aarch64": "arm64",
     "x86": "x86", "i386": "x86", "i686": "x86",
+    "ppc64le": "ppc64le",
 }
 IMAGE_FILE_MACHINE = {0x8664: "amd64", 0xAA64: "arm64", 0x014C: "x86"}
 
