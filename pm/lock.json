@@ -490,6 +490,10 @@
           "sha256": "9cc46e7b106abf606dd9b824abfd8f32043f53ca46a41d4ed2e61ebe7c58ef7e",
           "url": "https://unofficial-builds.nodejs.org/download/release/v26.7.0/node-v26.7.0-linux-arm64-musl.tar.xz"
         },
+        "linux-ppc64le": {
+          "sha256": "c3f7cd5c9e149dce1f5955b182c21468ffa20f602aba863ca93cb198b76c07ea",
+          "url": "https://nodejs.org/dist/v26.7.0/node-v26.7.0-linux-ppc64le.tar.xz"
+        },
         "linux-x64": {
           "sha256": "982aa24dd8be4c889c6a8ab337ddff3b0896645b20f4239356e80552c16277ee",
           "url": "https://nodejs.org/dist/v26.7.0/node-v26.7.0-linux-x64.tar.xz"
@@ -539,6 +543,10 @@
         "linux-arm64-musl": {
           "sha256": "6fcb8708ec4cf604bd970068ce45e4b3228bb207fbce043ccb78e750243bb274",
           "url": "https://github.com/astral-sh/python-build-standalone/releases/download/20260901/cpython-3.14.7+20260901-aarch64-unknown-linux-musl-install_only.tar.gz"
+        },
+        "linux-ppc64le": {
+          "sha256": "e7c0c1bca93696109993a633651e538a31ba0552764cfa4aaa2800ca87e670e3",
+          "url": "https://github.com/astral-sh/python-build-standalone/releases/download/20260901/cpython-3.14.7+20260901-ppc64le-unknown-linux-gnu-install_only.tar.gz"
         },
         "linux-x64": {
           "sha256": "0ab3305457051cd3e7c031857e005f1bda17c218a1990567dacaaac6dd1d14f0",
@@ -629,6 +637,10 @@
         "linux-arm64-musl": {
           "sha256": "fa513fca1eb2913334c944fe9adbdd410274a1cbe8dd05d03699a9eb85311d4e",
           "url": "https://github.com/astral-sh/uv/releases/download/0.12.3/uv-aarch64-unknown-linux-musl.tar.gz"
+        },
+        "linux-ppc64le": {
+          "sha256": "bff188fcf2d867c5595f8db6061a39e54752ab213eaefc14287f37e85afe9ead",
+          "url": "https://github.com/astral-sh/uv/releases/download/0.12.3/uv-powerpc64le-unknown-linux-gnu.tar.gz"
         },
         "linux-x64": {
           "sha256": "600cf9a742aca00d292673b16b5acffaa7b8c269a364ad0c2e79498dcb1fe101",
