@@ -34,6 +34,11 @@ def homes(tmp_path, monkeypatch):
     monkeypatch.setenv("HERMES_RUNTIME_DIR", str(tmp_path / "tools"))
     (tmp_path / "home").mkdir()
     monkeypatch.setattr(browser_runtime, "BAKED_EXECUTABLE_FILE", tmp_path / "etc" / "chromium-executable-path")
+    # A target pm builds Chromium for, whatever the host: on a gapped one
+    # (ppc64le, Termux) the host's own chromium would answer instead.
+    import pm.store
+    monkeypatch.setattr(pm.store, "current_target", lambda: "linux-x64")
+    monkeypatch.setattr(pm, "current_target", lambda: "linux-x64")
     return tmp_path
 
 

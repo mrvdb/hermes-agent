@@ -1018,9 +1018,11 @@ class Chromium(Package):
     # other OS tools; `install.sh --skip-browser` declines it.
     default = True
     on_path = False
-    # Neither Chrome-for-Testing nor Playwright's mirror builds for Android.
+    # Neither Chrome-for-Testing nor Playwright's mirror builds for Android or POWER;
+    # there the distribution's chromium stands in (browser_runtime._system_executable).
     gaps = {
         "linux-arm64-bionic": "no Chromium build for Android/Termux",
+        "linux-ppc64le": "no Chrome-for-Testing/Playwright ppc64le build; uses the system chromium",
         **{target: "Playwright/Chrome-for-Testing publishes no musl build" for target in MUSL_TARGETS},
     }
     emulated_arch_targets = frozenset({"win32-arm64"})
