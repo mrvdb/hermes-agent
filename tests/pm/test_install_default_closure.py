@@ -109,7 +109,16 @@ def _bare_install(install_spy, **kwargs) -> list[str]:
     return install_spy["names"]
 
 
-def test_browser_tools_are_a_default_the_user_can_decline_and_restore(install_spy):
+@pytest.fixture()
+def chromium_target(monkeypatch):
+    """A target pm builds Chromium for, whatever the host (ppc64le and Termux have none)."""
+    import pm.store
+
+    monkeypatch.setattr(pm.cli, "current_target", lambda: "linux-x64")
+    monkeypatch.setattr(pm.store, "current_target", lambda: "linux-x64")
+
+
+def test_browser_tools_are_a_default_the_user_can_decline_and_restore(install_spy, chromium_target):
     assert "chromium" in _bare_install(install_spy)
     assert "chromium" not in _bare_install(install_spy, without=["chromium"])
     # The opt-out is recorded: a later bare install (the updater's shape) keeps it.
@@ -119,7 +128,7 @@ def test_browser_tools_are_a_default_the_user_can_decline_and_restore(install_sp
     assert "chromium" in _bare_install(install_spy)
 
 
-def test_a_failed_default_download_does_not_fail_the_install(install_spy, capsys):
+def test_a_failed_default_download_does_not_fail_the_install(install_spy, chromium_target, capsys):
     install_spy["fail"] = {"chromium"}
     assert "chromium" in _bare_install(install_spy)
     assert install_spy["sync_extras"] == ["all"]

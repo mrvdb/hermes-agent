@@ -68,7 +68,7 @@ def test_fetch_url_names_each_suppliers_ppc64le_triple(pkg, version, triple):
     assert url.startswith("https://") and triple in url
 
 
-@pytest.mark.parametrize("pkg", ["ripgrep", "ffmpeg", "cua-driver"])
+@pytest.mark.parametrize("pkg", ["ripgrep", "ffmpeg", "cua-driver", "chromium"])
 def test_tools_without_upstream_ppc64le_build_are_gapped(pkg):
     from pm.registry import get_package
 
