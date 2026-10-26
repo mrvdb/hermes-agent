@@ -150,3 +150,33 @@ def test_cross_built_pbs_builds_sdists_with_the_native_gcc(tmp_path, monkeypatch
     _pinned_recording(tmp_path, monkeypatch, installed, "cross-python")
     kept = managed_environment(tmp_path / "kept", env={"PATH": native}, cache=tmp_path).env
     assert not {"CC", "CXX", "LDSHARED", "LDCXXSHARED"} & kept.keys()
+
+
+def _solve_for(machine: str) -> dict:
+    """The [tool.uv] policy a generated workspace gets for an interpreter on linux/*machine*."""
+    from pm import workspace
+
+    policy = {"environments": ["python_version >= '3.14'"], "override-dependencies": ["Pillow==13.0.0"]}
+    workspace._solve_only_for(policy, {"sys_platform": "linux", "platform_machine": machine})
+    return policy
+
+
+def _dropped(policy: dict, machine: str) -> set[str]:
+    from packaging.markers import default_environment
+    from packaging.requirements import Requirement
+
+    host = {**default_environment(), "sys_platform": "linux", "platform_machine": machine}
+    return {req.name for req in map(Requirement, policy["override-dependencies"])
+            if req.marker is not None and not req.marker.evaluate(host)}
+
+
+def test_ppc64le_workspace_solve_drops_wheel_only_packages_with_no_build_here():
+    """uv fails the whole narrowed lock when any extra reaches a wheel-only package with no
+    ppc64le build (playwright via google-meet stopped an update), installed or not."""
+    policy = _solve_for("ppc64le")
+    assert "playwright" in _dropped(policy, "ppc64le")
+    assert "Pillow==13.0.0" in policy["override-dependencies"]
+
+
+def test_other_hosts_keep_every_package_in_the_solve():
+    assert _dropped(_solve_for("x86_64"), "x86_64") == set()
