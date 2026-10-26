@@ -150,3 +150,95 @@ def test_cross_built_pbs_builds_sdists_with_the_native_gcc(tmp_path, monkeypatch
     _pinned_recording(tmp_path, monkeypatch, installed, "cross-python")
     kept = managed_environment(tmp_path / "kept", env={"PATH": native}, cache=tmp_path).env
     assert not {"CC", "CXX", "LDSHARED", "LDCXXSHARED"} & kept.keys()
+
+
+def _solve_for(machine: str) -> dict:
+    """The [tool.uv] policy a generated workspace gets for an interpreter on linux/*machine*."""
+    from pm import workspace
+
+    policy = {"environments": ["python_version >= '3.14'"], "override-dependencies": ["Pillow==13.0.0"]}
+    workspace._solve_only_for(policy, {"sys_platform": "linux", "platform_machine": machine})
+    return policy
+
+
+def _dropped(policy: dict, machine: str) -> set[str]:
+    from packaging.markers import default_environment
+    from packaging.requirements import Requirement
+
+    host = {**default_environment(), "sys_platform": "linux", "platform_machine": machine}
+    return {req.name for req in map(Requirement, policy["override-dependencies"])
+            if req.marker is not None and not req.marker.evaluate(host)}
+
+
+def test_ppc64le_workspace_solve_drops_wheel_only_packages_with_no_build_here():
+    """uv fails the whole narrowed lock when any extra reaches a wheel-only package with no
+    ppc64le build (playwright via google-meet stopped an update), installed or not."""
+    policy = _solve_for("ppc64le")
+    assert "playwright" in _dropped(policy, "ppc64le")
+    assert "Pillow==13.0.0" in policy["override-dependencies"]
+
+
+def test_other_hosts_keep_every_package_in_the_solve():
+    assert _dropped(_solve_for("x86_64"), "x86_64") == set()
+
+
+def _ppc64le_unbuildable_in_core_lock() -> set[str]:
+    """Wheel-only packages core's uv.lock reaches on linux/ppc64le that have no build for it.
+
+    Walks from hermes-agent with every extra, following only edges whose marker can hold on
+    that host, and stops at the packages the ppc64le solve already drops.
+    """
+    import re
+    import tomllib
+    from pathlib import Path
+
+    from packaging.markers import Marker, default_environment
+
+    from pm import workspace
+
+    text = (Path(__file__).resolve().parents[2] / "uv.lock").read_text(encoding="utf-8")
+    lock = tomllib.loads(text)
+    host = {**default_environment(), "sys_platform": "linux", "platform_machine": "ppc64le",
+            "platform_system": "Linux", "os_name": "posix", "implementation_name": "cpython",
+            "platform_python_implementation": "CPython", "python_version": "3.14",
+            "python_full_version": "3.14.0"}
+    extras = {""} | set(re.findall(r"extra == '([^']*)'", text))
+
+    def holds(marker: str | None) -> bool:
+        return marker is None or any(Marker(marker).evaluate({**host, "extra": extra}) for extra in extras)
+
+    entries: dict[str, list[dict]] = {}
+    for package in lock["package"]:
+        if holds(" or ".join(f"({m})" for m in package.get("resolution-markers", [])) or None):
+            entries.setdefault(package["name"], []).append(package)
+    dropped = set(workspace._NO_BUILD_FOR_HOST[("linux", "ppc64le")])
+    seen, todo, unbuildable = set(), [("hermes-agent", None, tuple(entries["hermes-agent"][0].get(
+        "optional-dependencies", {})))], set()
+    while todo:
+        name, version, wanted = todo.pop()
+        if name in dropped:
+            continue
+        for package in entries.get(name, []):
+            if version is not None and package["version"] != version:
+                continue
+            key = (name, package["version"], wanted)
+            if key in seen:
+                continue
+            seen.add(key)
+            tags = [wheel["url"].rsplit("-", 1)[1] for wheel in package.get("wheels", [])]
+            if ("registry" in package["source"] and "sdist" not in package
+                    and not any(tag == "any.whl" or "ppc64le" in tag for tag in tags)):
+                unbuildable.add(name)
+            edges = [*package.get("dependencies", [])]
+            for extra in wanted:
+                edges += package.get("optional-dependencies", {}).get(extra, [])
+            todo += [(edge["name"], edge.get("version"), tuple(edge.get("extra", ())))
+                     for edge in edges if holds(edge.get("marker"))]
+    return unbuildable
+
+
+def test_ppc64le_solve_drops_every_wheel_only_package_core_pins_without_a_build_here():
+    """A plugin generation is moved onto core's pins (`uv lock -P`), so a core pin that is
+    wheel-only with no ppc64le build fails the narrowed lock even where the previous
+    generation held an older, buildable version (espeakng-loader 0.2.4 via [kittentts])."""
+    assert _ppc64le_unbuildable_in_core_lock() == set()
