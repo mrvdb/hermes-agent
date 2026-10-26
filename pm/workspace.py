@@ -184,6 +184,14 @@ def _without_release_age(text: str) -> str:
     return re.sub(r"(?m)^exclude-newer\s*=.*\n", "", text)
 
 
+# Wheel-only packages (no sdist) with no build for a host, keyed by the probed
+# (sys.platform, platform.machine). uv locks every extra, installed or not, so one of these
+# behind any extra fails the narrowed lock; the solve overrides them away instead.
+_NO_BUILD_FOR_HOST = {
+    ("linux", "ppc64le"): ("ctranslate2", "onnxruntime", "playwright", "sherpa-onnx-core", "torch"),
+}
+
+
 def _solve_only_for(uv_policy: dict, python: Path) -> None:
     """Narrow ``tool.uv.environments`` to the platform of the interpreter that installs the generation.
 
@@ -204,6 +212,9 @@ def _solve_only_for(uv_policy: dict, python: Path) -> None:
     sys_platform, machine = probe.stdout.split()
     host = f"sys_platform == {sys_platform!r} and platform_machine == {machine!r}"
     uv_policy["environments"] = [f"({entry}) and {host}" for entry in uv_policy.get("environments") or []] or [host]
+    if unbuildable := _NO_BUILD_FOR_HOST.get((sys_platform, machine)):
+        uv_policy["override-dependencies"] = [*uv_policy.get("override-dependencies", []),
+                                              *(f"{name}; sys_platform == 'never'" for name in unbuildable)]
 
 
 def _is_member_candidate(plugin_dir: Path) -> bool:

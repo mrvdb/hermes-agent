@@ -134,3 +134,36 @@ def test_build_env_leaves_compiler_alone_off_ppc64le(monkeypatch, tmp_path):
     monkeypatch.setattr(environment.sys, "platform", "linux")
     env = environment.managed_environment(tmp_path / "venv", env={}, cache=tmp_path / "cache").env
     assert "CC" not in env and "CXX" not in env
+
+
+def _solve_for(monkeypatch, tmp_path, machine: str) -> dict:
+    """The [tool.uv] policy a generated workspace gets for an interpreter on linux/*machine*."""
+    import subprocess
+
+    from pm import workspace
+
+    monkeypatch.setattr(subprocess, "run", lambda argv, **kw: subprocess.CompletedProcess(argv, 0, f"linux\n{machine}\n", ""))
+    policy = {"environments": ["python_version >= '3.14'"], "override-dependencies": ["Pillow==13.0.0"]}
+    workspace._solve_only_for(policy, tmp_path / "python3")
+    return policy
+
+
+def _dropped(policy: dict, machine: str) -> set[str]:
+    from packaging.markers import default_environment
+    from packaging.requirements import Requirement
+
+    host = {**default_environment(), "sys_platform": "linux", "platform_machine": machine}
+    return {req.name for req in map(Requirement, policy["override-dependencies"])
+            if req.marker is not None and not req.marker.evaluate(host)}
+
+
+def test_ppc64le_workspace_solve_drops_wheel_only_packages_with_no_build_here(monkeypatch, tmp_path):
+    """uv fails the whole narrowed lock when any extra reaches a wheel-only package with no
+    ppc64le build (playwright via google-meet stopped an update), installed or not."""
+    policy = _solve_for(monkeypatch, tmp_path, "ppc64le")
+    assert "playwright" in _dropped(policy, "ppc64le")
+    assert "Pillow==13.0.0" in policy["override-dependencies"]
+
+
+def test_other_hosts_keep_every_package_in_the_solve(monkeypatch, tmp_path):
+    assert _dropped(_solve_for(monkeypatch, tmp_path, "x86_64"), "x86_64") == set()
