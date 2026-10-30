@@ -304,9 +304,9 @@ uv_bootstrap_pin() {
             UV_PIN_SHA256="743f85035a1996ecb350659e01cd9faea9709829be09b1b4b03c73eaf3c9cd73"
             ;;
         linux-ppc64le)
-            UV_PIN_URL="https://github.com/astral-sh/uv/releases/download/0.12.3/uv-powerpc64le-unknown-linux-gnu.tar.gz"
-            UV_PIN_MIRROR="https://hermes-assets.nousresearch.com/upstream/sha256/bff188fcf2d867c5595f8db6061a39e54752ab213eaefc14287f37e85afe9ead"
-            UV_PIN_SHA256="bff188fcf2d867c5595f8db6061a39e54752ab213eaefc14287f37e85afe9ead"
+            UV_PIN_URL="https://github.com/astral-sh/uv/releases/download/0.13.5/uv-powerpc64le-unknown-linux-gnu.tar.gz"
+            UV_PIN_MIRROR="https://hermes-assets.nousresearch.com/upstream/sha256/f891bc62de89832775d5104ad3b3332848122536a8dc8bac5775a18cce42b845"
+            UV_PIN_SHA256="f891bc62de89832775d5104ad3b3332848122536a8dc8bac5775a18cce42b845"
             ;;
         *)
             UV_PIN_URL=""
