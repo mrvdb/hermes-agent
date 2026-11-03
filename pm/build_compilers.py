@@ -26,6 +26,9 @@ import sys
 # CXX, so each compiler's own linker is rewritten with it.
 _COMPILERS = (("CC", "LDSHARED"), ("CXX", "LDCXXSHARED"))
 _GCC_FAMILY = {"clang": "gcc", "clang++": "g++"}
+# PBS cross-compiles some targets (ppc64le) and records the triple's gcc by absolute
+# path, e.g. /usr/bin/powerpc64le-linux-gnu-gcc; a native host has the bare name.
+_CROSS_GCC = re.compile(r"(?:.*/)?[a-z0-9_]+-linux-gnu[a-z0-9_]*-(gcc|g\+\+)")
 _RECORDED = ("CC", "CXX", "LDSHARED", "LDCXXSHARED", "AR")
 
 _MISSING_COMPILER = (
@@ -59,7 +62,8 @@ def _linux_defaults(recorded: Mapping[str, str], env: Mapping[str, str]) -> dict
     for compiler_var, linker_var in _COMPILERS:
         command = recorded.get(compiler_var, "")
         program = command.split(" ", 1)[0]
-        substitute = _GCC_FAMILY.get(program)
+        cross = _CROSS_GCC.fullmatch(program)
+        substitute = cross.group(1) if cross else _GCC_FAMILY.get(program)
         if (compiler_var in env or substitute is None or shutil.which(program, path=search)
                 or not shutil.which(substitute, path=search)):
             continue

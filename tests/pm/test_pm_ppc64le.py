@@ -8,6 +8,7 @@ running them.
 
 from __future__ import annotations
 
+import json
 import sys
 
 import pytest
@@ -102,3 +103,50 @@ def test_tool_roots_unchanged_where_nothing_is_gapped(monkeypatch):
     monkeypatch.setattr(pm.store, "current_target", lambda: "linux-x64")
     assert registry.tool_roots(["ffmpeg", "node", "npm", "python", "ripgrep"]) == [
         "ffmpeg", "node", "npm", "python", "ripgrep"]
+
+
+# What python-build-standalone 3.14.9 records on ppc64le (sysconfig.get_config_var): it
+# cross-compiles POWER, so every tool carries the triple's prefix.
+_CROSS = "/usr/bin/powerpc64le-linux-gnu-"
+_LDFLAGS = " -shared -Wl,-z,noexecstack -Wl,-z,relro -Wl,--exclude-libs,ALL -Wl,--no-tls-get-addr-optimize"
+_PBS_PPC64LE = {
+    "CC": _CROSS + "gcc -pthread", "CXX": _CROSS + "g++",
+    "LDSHARED": _CROSS + "gcc -pthread" + _LDFLAGS, "LDCXXSHARED": _CROSS + "g++" + _LDFLAGS,
+    "AR": "ar",
+}
+
+
+def _pinned_recording(tmp_path, monkeypatch, recorded, name="pinned-python"):
+    # One file per recording: pm.build_compilers caches the toolchain per interpreter path.
+    pinned = tmp_path / name
+    pinned.write_text(f"#!/bin/sh\necho '{json.dumps(recorded)}'\n", encoding="utf-8")
+    pinned.chmod(0o755)
+    monkeypatch.setattr("pm._uv._toolchain", lambda **kwargs: (tmp_path / "uv", pinned))
+
+
+def _bin_dir(directory, *names):
+    directory.mkdir()
+    for name in names:
+        (directory / name).write_text("#!/bin/sh\n", encoding="utf-8")
+        (directory / name).chmod(0o755)
+    return str(directory)
+
+
+@pytest.mark.platforms("linux")
+def test_cross_built_pbs_builds_sdists_with_the_native_gcc(tmp_path, monkeypatch):
+    """A native POWER host has gcc, not the cross triple's gcc PBS recorded."""
+    from pm.environment import managed_environment
+
+    _pinned_recording(tmp_path, monkeypatch, _PBS_PPC64LE)
+    native = _bin_dir(tmp_path / "native", "gcc", "g++", "ar")
+    built = managed_environment(tmp_path / "venv", env={"PATH": native}, cache=tmp_path).env
+    assert {key: built.get(key) for key in _PBS_PPC64LE if key != "AR"} == {
+        "CC": "gcc -pthread", "CXX": "g++",
+        "LDSHARED": "gcc -pthread" + _LDFLAGS, "LDCXXSHARED": "g++" + _LDFLAGS,
+    }
+    # A host that has the recorded cross toolchain keeps it.
+    cross = _bin_dir(tmp_path / "cross", "powerpc64le-linux-gnu-gcc", "powerpc64le-linux-gnu-g++")
+    installed = {key: value.replace("/usr/bin/", cross + "/") for key, value in _PBS_PPC64LE.items()}
+    _pinned_recording(tmp_path, monkeypatch, installed, "cross-python")
+    kept = managed_environment(tmp_path / "kept", env={"PATH": native}, cache=tmp_path).env
+    assert not {"CC", "CXX", "LDSHARED", "LDCXXSHARED"} & kept.keys()
