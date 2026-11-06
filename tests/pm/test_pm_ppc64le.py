@@ -69,6 +69,16 @@ def test_fetch_url_names_each_suppliers_ppc64le_triple(pkg, version, triple):
     assert url.startswith("https://") and triple in url
 
 
+def test_pnpm_fetches_the_executable_npm_publishes_for_power():
+    """npm names POWER after Node's process.arch: @pnpm/exe.linux-ppc64 is the
+    little-endian build; there is no exe.linux-ppc64le."""
+    from pm.registry import get_package
+
+    executable, launcher = get_package("pnpm").fetch_urls("12.15.0", TARGET)
+    assert executable == "https://registry.npmjs.org/@pnpm/exe.linux-ppc64/-/exe.linux-ppc64-12.15.0.tgz"
+    assert launcher == "https://registry.npmjs.org/pnpm/-/pnpm-12.15.0.tgz"
+
+
 @pytest.mark.parametrize("pkg", ["ripgrep", "ffmpeg", "cua-driver", "chromium"])
 def test_tools_without_upstream_ppc64le_build_are_gapped(pkg):
     from pm.registry import get_package
