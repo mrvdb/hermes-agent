@@ -813,7 +813,8 @@ class Pnpm(BinaryPackage):
     binary_rel = {"win32": "pnpm.exe", "posix": "pnpm"}
     flatten = False
     # pnpm names its Termux build after the OS, not the libc: a bionic-linked executable.
-    exe_platforms = {"linux-arm64-bionic": "android-arm64"}
+    # npm platform packages follow Node's process.arch, which calls POWER little-endian "ppc64".
+    exe_platforms = {"linux-arm64-bionic": "android-arm64", "linux-ppc64le": "linux-ppc64"}
     on_demand = {"linux-arm64-bionic": "the Termux .deb ships a prebuilt TUI; `hermes dashboard` fetches pnpm to build the web UI"}
 
     def fetch_urls(self, version: str, target: str) -> list[str]:
