@@ -554,6 +554,10 @@
           "sha256": "87d822005776f222f2964c93df055f926d80595a63442b891d3aafe1f0a1dc67",
           "url": "https://unofficial-builds.nodejs.org/download/release/v26.12.1/node-v26.12.1-linux-arm64-musl.tar.xz"
         },
+        "linux-ppc64le": {
+          "sha256": "35a88a7188738ed64239e1312bf0d4eb786afa8d8a5652299799ca256ac72425",
+          "url": "https://nodejs.org/dist/v26.12.1/node-v26.12.1-linux-ppc64le.tar.xz"
+        },
         "linux-x64": {
           "sha256": "6170b2d474e1c626f43cff3adc118df9fe3b573258a4fc3d850c8dbc6b079bbd",
           "url": "https://nodejs.org/dist/v26.12.1/node-v26.12.1-linux-x64.tar.xz"
@@ -634,6 +638,16 @@
             "url": "https://registry.npmjs.org/pnpm/-/pnpm-12.15.0.tgz"
           }
         ],
+        "linux-ppc64le": [
+          {
+            "sha256": "714d06d1fa76790e81b2e1c9a98de8277e6f75dba79400bfb385b4c7aba69e6d",
+            "url": "https://registry.npmjs.org/@pnpm/exe.linux-ppc64/-/exe.linux-ppc64-12.15.0.tgz"
+          },
+          {
+            "sha256": "f5173f6127cc505cdb36ec17719fe54a8511c6fd8560c7ceb4bf7c73e3b4458b",
+            "url": "https://registry.npmjs.org/pnpm/-/pnpm-12.15.0.tgz"
+          }
+        ],
         "linux-x64": [
           {
             "sha256": "402f7045b1e0587acb1542f18d38afbccb6babf3c7451394e6fb3d9f0160c6ca",
@@ -698,6 +712,10 @@
         "linux-arm64-musl": {
           "sha256": "ef171f00a80763ea5e3f547686217a1baf24cdb13905204ef8e647bfef511715",
           "url": "https://github.com/astral-sh/python-build-standalone/releases/download/20261021/cpython-3.14.9+20261021-aarch64-unknown-linux-musl-install_only.tar.gz"
+        },
+        "linux-ppc64le": {
+          "sha256": "128b8973d91cdd25fc03511758fb3049734442a07438d769a67ebe58f981a320",
+          "url": "https://github.com/astral-sh/python-build-standalone/releases/download/20261021/cpython-3.14.9+20261021-ppc64le-unknown-linux-gnu-install_only.tar.gz"
         },
         "linux-x64": {
           "sha256": "dfa4c5a40c47f338f41658017be550c72247c391e6bfb1fa4da03ebc8451abdf",
@@ -788,6 +806,10 @@
         "linux-arm64-musl": {
           "sha256": "7906c79adb21c81abd559841ba76bb1d9af9d791acac7a041b2972e03ae16538",
           "url": "https://github.com/astral-sh/uv/releases/download/0.13.5/uv-aarch64-unknown-linux-musl.tar.gz"
+        },
+        "linux-ppc64le": {
+          "sha256": "f891bc62de89832775d5104ad3b3332848122536a8dc8bac5775a18cce42b845",
+          "url": "https://github.com/astral-sh/uv/releases/download/0.13.5/uv-powerpc64le-unknown-linux-gnu.tar.gz"
         },
         "linux-x64": {
           "sha256": "f68d291c75783122dad58ab77def0e13f3233f358731db5d6d7e8715603b928f",
