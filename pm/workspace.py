@@ -207,7 +207,8 @@ def _without_release_age(text: str) -> str:
 # (sys_platform, platform_machine). uv locks every extra, installed or not, so one of these
 # behind any extra fails the narrowed lock; the solve overrides them away instead.
 _NO_BUILD_FOR_HOST = {
-    ("linux", "ppc64le"): ("ctranslate2", "onnxruntime", "playwright", "sherpa-onnx-core", "torch"),
+    ("linux", "ppc64le"): ("ctranslate2", "espeakng-loader", "onnxruntime", "playwright", "sherpa-onnx-core",
+                           "torch"),
 }
 
 
