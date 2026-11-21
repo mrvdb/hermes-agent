@@ -47,30 +47,34 @@ def clear_skills_cache() -> None:
 
 
 def _dir_tree_signature(root, sig, depth=_SIGNATURE_MAX_DEPTH) -> None:
-    """Append ``(dir, mtime_ns, child dir names)`` for *root* and the dirs below it the catalog walks
-    (``iter_skill_index_files``: no excluded dirs, no support dirs of a skill), depth-bounded. The child
-    names, not only mtimes: an install and an uninstall inside one coarse mtime tick (1-2 s on some
-    filesystems) leave every mtime equal, and the change must still show. ~1 ms for 170 dirs."""
+    """Append ``(dir, child dir names, SKILL.md (mtime_ns, size) or None)`` for *root* and the dirs below
+    it the catalog walks (``iter_skill_index_files``: no excluded dirs, no support dirs of a skill),
+    depth-bounded. The child names, not only mtimes: an install and an uninstall inside one coarse mtime
+    tick (1-2 s on some filesystems) leave every mtime equal, and the change must still show. No
+    directory mtime: bookkeeping files the catalog never reads (``.usage.json`` on every skill load,
+    ``.bundled_manifest`` on every launch) are replaced atomically in the skills root, and each replace
+    moved it, so every client rescanned its catalog. The SKILL.md stat also sees an in-place edit,
+    which no directory mtime does. ~1 ms for 170 dirs."""
     from agent.skill_utils import EXCLUDED_SKILL_DIRS, SKILL_SUPPORT_DIRS
     try:
-        mtime = os.stat(root).st_mtime_ns
         with os.scandir(root) as it:
             entries = list(it)
     except OSError:
         return
-    names, is_skill = [], False
+    names, skill_md = [], None
     for entry in entries:
         with suppress(OSError):
             if entry.is_dir():
                 names.append(entry.name)
             elif entry.name == "SKILL.md":
-                is_skill = True
+                st = entry.stat()
+                skill_md = (st.st_mtime_ns, st.st_size)
     names.sort()
-    sig.append((str(root), mtime, tuple(names)))
+    sig.append((str(root), tuple(names), skill_md))
     if depth <= 0:
         return
     for name in names:
-        if name not in EXCLUDED_SKILL_DIRS and not (is_skill and name in SKILL_SUPPORT_DIRS):
+        if name not in EXCLUDED_SKILL_DIRS and not (skill_md is not None and name in SKILL_SUPPORT_DIRS):
             _dir_tree_signature(os.path.join(root, name), sig, depth - 1)
 
 

@@ -70,6 +70,41 @@ def test_a_skill_installed_under_an_existing_category_subdir_is_served(tmp_path)
         assert before != after  # the skill dir itself gained a child name
 
 
+def test_bookkeeping_files_in_a_skill_root_do_not_move_the_signature(tmp_path):
+    """``.usage.json`` (every skill load in any session) and ``.bundled_manifest`` (every launch) are
+    rewritten by atomic replace in the skills root. That moves the root's mtime, but the catalog reads
+    neither, so the signature must hold: a move broadcasts ``skills.changed`` and every attached client
+    rescans its whole catalog at once."""
+    import os
+
+    import agent.skill_commands as sc_mod
+
+    with patch("tools.skills_tool.SKILLS_DIR", tmp_path):
+        _make_skill(tmp_path / "devops", "steady")
+        before = sc_mod._skill_dirs_signature()
+        for name in (".usage.json", ".bundled_manifest"):
+            (tmp_path / f"{name}.tmp").write_text("{}", encoding="utf-8")
+            os.replace(tmp_path / f"{name}.tmp", tmp_path / name)
+        os.utime(tmp_path, ns=(1, 1))
+        os.utime(tmp_path / "devops", ns=(1, 1))
+        assert sc_mod._skill_dirs_signature() == before
+
+
+def test_a_rewritten_skill_md_still_moves_the_signature(tmp_path):
+    """Without the directory mtime, an edit of a SKILL.md (atomic replace or in place) must still show."""
+    import os
+
+    import agent.skill_commands as sc_mod
+
+    with patch("tools.skills_tool.SKILLS_DIR", tmp_path):
+        skill_md = _make_skill(tmp_path, "edited") / "SKILL.md"
+        os.utime(skill_md, ns=(1_000_000_000, 1_000_000_000))
+        before = sc_mod._skill_dirs_signature()
+        skill_md.write_text("---\nname: edited\ndescription: New text.\n---\n", encoding="utf-8")
+        os.utime(skill_md, ns=(2_000_000_000, 2_000_000_000))
+        assert sc_mod._skill_dirs_signature() != before
+
+
 def test_only_an_unreadable_skill_root_keeps_the_published_map():
     """A stat failure (OSError) gives no signature and keeps the published map; a bug in the signature
     code raises instead of pinning a stale map for the life of the gateway without a trace."""
